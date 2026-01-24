@@ -7,7 +7,6 @@ router = APIRouter(tags=["Chat"])
 
 llm = OllamaProvider()
 
-
 class ChatRequest(BaseModel):
     prompt: str
     context: Optional[str] = None  # future RAG support
