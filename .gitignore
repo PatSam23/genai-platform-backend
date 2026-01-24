@@ -5,3 +5,4 @@ __pycache__/
 .chromadb/
 .ipynb_checkpoints/
 .DS_Store
+
