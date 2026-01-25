@@ -11,7 +11,6 @@ class ChatRequest(BaseModel):
     prompt: str
     context: Optional[str] = None  # future RAG support
 
-
 @router.post("/chat")
 async def chat(request: ChatRequest):
     response = await llm.generate(
