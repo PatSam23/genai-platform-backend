@@ -5,20 +5,17 @@ from app.core.config import settings
 
 class OllamaProvider(BaseLLMProvider):
     async def generate(self, prompt: str, context: str | None = None) -> str:
-        messages = []
-
-        # If RAG context is provided, inject it as system message
-        if context:
-            messages.append({
-                "role": "system",
-                "content": f"Use the following context to answer:\n{context}"
-            })
-
-        messages.append({
-            "role": "user",
-            "content": prompt
-        })
-
+        """
+        Generate a response from the Ollama LLM.
+        Args:
+            prompt: The full prompt string (already constructed).
+            context: Deprecated. Not used; prompt should include context if needed.
+        Returns:
+            LLM response as string.
+        """
+        messages = [
+            {"role": "user", "content": prompt}
+        ]
         response = ollama.chat(
             model=settings.OLLAMA_MODEL,
             messages=messages,
@@ -26,5 +23,4 @@ class OllamaProvider(BaseLLMProvider):
                 "temperature": settings.OLLAMA_TEMPERATURE
             }
         )
-
         return response["message"]["content"]
