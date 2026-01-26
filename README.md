@@ -45,4 +45,4 @@ Refer to the API docstrings and handler functions for request/response shapes.
 Fork, create a feature branch, add tests, and submit a PR. Keep changes small and focused.
 
 ## License
-Specify a license in LICENSE (e.g., MIT).
+NO License yet
