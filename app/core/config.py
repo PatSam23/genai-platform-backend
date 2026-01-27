@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     # Ollama settings
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "phi3"
+    OLLAMA_MODEL: str = "llama3.2:latest"
     OLLAMA_TEMPERATURE: float = 0.7
 
     model_config = SettingsConfigDict(
