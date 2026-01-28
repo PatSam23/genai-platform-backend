@@ -1,21 +1,35 @@
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
 from app.services.ai_service import AIService
 
 router = APIRouter(tags=["Chat"])
-
 ai_service = AIService()
+
 
 class ChatRequest(BaseModel):
     prompt: str
-    context: Optional[str] = None  # future RAG support
+    context: Optional[str] = None
 
 
 @router.post("/chat")
 async def chat(request: ChatRequest):
-    """
-    Chat endpoint using AIService for prompt orchestration and provider invocation.
-    """
-    response = await ai_service.chat(user_message=request.prompt, rag_context=request.context)
+    response = await ai_service.generate_response(
+        request.prompt, request.context
+    )
     return {"response": response}
+
+
+@router.post("/chat/stream")
+async def chat_stream(request: ChatRequest):
+    async def event_generator():
+        async for token in ai_service.stream_response(
+            request.prompt, request.context
+        ):
+            yield f"data: {token}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+    )

@@ -1,40 +1,23 @@
-"""
-AIService orchestrates prompt construction and LLM provider invocation.
-"""
-from typing import Optional
+from typing import AsyncGenerator
 from app.providers.factory import get_llm_provider
 
+
 class AIService:
-    """
-    Service layer for AI chat interactions.
-    Handles prompt construction and provider invocation.
-    """
     def __init__(self):
         self.provider = get_llm_provider()
 
-    async def chat(self, user_message: str, rag_context: Optional[str] = None) -> str:
-        """
-        Build prompt and get LLM response.
-        Args:
-            user_message: The user's input message.
-            rag_context: Optional RAG context string.
-        Returns:
-            LLM response as string.
-        """
-        prompt = self._build_prompt(user_message, rag_context)
-        response = await self.provider.generate(prompt)
-        return response
+    async def generate_response(
+        self, prompt: str, context: str | None = None
+    ) -> str:
+        final_prompt = self._build_prompt(prompt)
+        return await self.provider.generate(final_prompt, context)
 
-    def _build_prompt(self, user_message: str, rag_context: Optional[str]) -> str:
-        """
-        Construct the prompt for the LLM, optionally injecting RAG context.
-        """
-        if rag_context:
-            return f"Context:\n{rag_context}\n\nUser: {user_message}\nAI:"
-        return f"User: {user_message}\nAI:"
+    async def stream_response(
+        self, prompt: str, context: str | None = None
+    ) -> AsyncGenerator[str, None]:
+        final_prompt = self._build_prompt(prompt)
+        async for token in self.provider.stream(final_prompt, context):
+            yield token
 
-    async def chat_stream(self, user_message: str, rag_context: Optional[str] = None):
-        """
-        Stub for streaming support (not implemented yet).
-        """
-        raise NotImplementedError("Streaming not implemented yet.")
+    def _build_prompt(self, prompt: str) -> str:
+        return f"You are a helpful AI assistant.\nUser: {prompt}\nAssistant:"
