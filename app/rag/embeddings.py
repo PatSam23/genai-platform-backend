@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
-
 import ollama
 from app.core.config import settings
-
 
 class BaseEmbeddingModel(ABC):
     """

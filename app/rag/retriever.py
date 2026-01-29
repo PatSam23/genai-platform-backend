@@ -1,5 +1,4 @@
 from typing import List, Tuple
-
 from app.rag.embeddings import BaseEmbeddingModel
 from app.rag.vector_store import BaseVectorStore
 
