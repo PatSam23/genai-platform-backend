@@ -1,6 +1,6 @@
 from typing import List
 from app.rag.schemas import ChunkingConfig
-
+import re
 
 def chunk_text(text: str, config: ChunkingConfig) -> List[str]:
     if config.strategy == "paragraph":
@@ -30,7 +30,7 @@ def _chunk_fixed(text: str, config: ChunkingConfig) -> List[str]:
 def _chunk_by_paragraph(text: str, config: ChunkingConfig) -> List[str]:
     paragraphs = [
         p.strip()
-        for p in text.split("\n\n")
+        for p in re.split(r"\n\s*\n+", text)
         if p.strip()
     ]
 
