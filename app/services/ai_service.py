@@ -6,6 +6,7 @@ from app.rag.embeddings import OllamaEmbeddingModel
 from app.rag.vector_store import InMemoryVectorStore
 from app.rag.chunking import chunk_text
 from app.rag.schemas import ChunkingConfig
+from app.rag.ingestion.pdf_loader import PDFLoader
 
 class AIService:
     def __init__(self):
@@ -16,6 +17,61 @@ class AIService:
         self.retriever = Retriever(self.embedder, self.vector_store)
         self.rag_pipeline = RAGPipeline(self.retriever)
         
+    async def generate_with_rag_from_pdf(
+        self,
+        query: str,
+        pdf_path: str,
+        top_k: int = 5,
+    ) -> dict:
+        """
+        Full RAG flow for PDFs:
+        - load PDF page by page
+        - paragraph-aware chunking
+        - embed + store
+        - retrieve
+        - generate grounded answer
+        """
+        loader = PDFLoader()
+        pages = loader.load(pdf_path)
+
+        chunk_config = ChunkingConfig(
+            strategy="paragraph",
+        )
+
+        all_chunks = []
+        all_metadatas = []
+        
+        for page in pages:
+            if not page["text"]:
+                continue
+
+            chunks = chunk_text(page["text"], chunk_config)
+
+            for chunk in chunks:
+                all_chunks.append(chunk)
+                all_metadatas.append({
+                    "page": page["page"],
+                    "source": pdf_path,
+                })
+
+        embeddings = await self.embedder.embed(all_chunks)
+        self.vector_store.add(embeddings, all_chunks, all_metadatas)
+
+        context, sources = await self.rag_pipeline.run(
+            query,
+            top_k=top_k,
+        )
+
+        answer = await self.provider.generate(
+            prompt=query,
+            context=context,
+        )
+
+        return {
+            "answer": answer,
+            "sources": sources,
+        }
+
     async def generate_with_rag(
         self,
         query: str,

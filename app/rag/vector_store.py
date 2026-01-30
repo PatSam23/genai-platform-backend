@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Any
 import math
 
 def cosine_similarity(a: List[float], b: List[float]) -> float:
@@ -12,17 +12,14 @@ def cosine_similarity(a: List[float], b: List[float]) -> float:
 
     return dot_product / (norm_a * norm_b)
 
-
 class BaseVectorStore(ABC):
     @abstractmethod
     def add(
         self,
         embeddings: List[List[float]],
         documents: List[str],
+        metadatas: List[Dict[str, Any]],
     ) -> None:
-        """
-        Store embeddings with their corresponding documents.
-        """
         pass
 
     @abstractmethod
@@ -30,42 +27,42 @@ class BaseVectorStore(ABC):
         self,
         query_embedding: List[float],
         top_k: int = 5,
-    ) -> List[Tuple[str, float]]:
-        """
-        Return top_k documents with similarity scores.
-        """
+    ) -> List[Tuple[str, float, Dict[str, Any]]]:
         pass
-
 
 class InMemoryVectorStore(BaseVectorStore):
     def __init__(self):
         self._embeddings: List[List[float]] = []
         self._documents: List[str] = []
+        self._metadatas: List[Dict[str, Any]] = []
 
     def add(
         self,
         embeddings: List[List[float]],
         documents: List[str],
+        metadatas: List[Dict[str, Any]],
     ) -> None:
-        if len(embeddings) != len(documents):
-            raise ValueError("Embeddings and documents must have same length")
+        if not (len(embeddings) == len(documents) == len(metadatas)):
+            raise ValueError("Embeddings, documents, and metadatas must have same length")
 
         self._embeddings.extend(embeddings)
         self._documents.extend(documents)
+        self._metadatas.extend(metadatas)
 
     def search(
         self,
         query_embedding: List[float],
         top_k: int = 5,
-    ) -> List[Tuple[str, float]]:
-        scores: List[Tuple[str, float]] = []
+    ) -> List[Tuple[str, float, Dict[str, Any]]]:
+        scores = []
 
-        for emb, doc in zip(self._embeddings, self._documents):
+        for emb, doc, meta in zip(
+            self._embeddings,
+            self._documents,
+            self._metadatas,
+        ):
             similarity = cosine_similarity(query_embedding, emb)
-            scores.append((doc, similarity))
+            scores.append((doc, similarity, meta))
 
-        # Sort by similarity (higher is better)
         scores.sort(key=lambda x: x[1], reverse=True)
-
         return scores[:top_k]
-
