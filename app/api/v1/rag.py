@@ -1,9 +1,42 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, File, Form
+from tempfile import NamedTemporaryFile
+import shutil
+
+from app.services.ai_service import AIService
 
 router = APIRouter(tags=["RAG"])
 
-@router.post("/rag/query")
-async def rag_query():
+ai_service = AIService()
+
+
+@router.post("/rag/pdf")
+async def rag_from_pdf(
+    query: str = Form(...),
+    file: UploadFile = File(...),
+    top_k: int = Form(5),
+):
+    """
+    RAG over uploaded PDF with source attribution.
+    """
+    # Save uploaded PDF to a temp file
+    with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        pdf_path = tmp.name
+
+    result = await ai_service.generate_with_rag_from_pdf(
+        query=query,
+        pdf_path=pdf_path,
+        top_k=top_k,
+    )
+
     return {
-        "message": "RAG endpoint is alive"
+        "answer": result["answer"],
+        "sources": [
+            {
+                "text": doc,
+                "score": score,
+                "metadata": metadata,
+            }
+            for doc, score, metadata in result["sources"]
+        ],
     }
