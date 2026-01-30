@@ -29,7 +29,7 @@ class PDFLoader:
             text = page.extract_text() or ""
 
             pages.append({
-                "page": idx + 1,   # human-friendly page number
+                "page": idx + 1,  
                 "text": text.strip()
             })
 
