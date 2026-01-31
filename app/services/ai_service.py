@@ -16,7 +16,53 @@ class AIService:
         self.vector_store = InMemoryVectorStore()
         self.retriever = Retriever(self.embedder, self.vector_store)
         self.rag_pipeline = RAGPipeline(self.retriever)
-        
+      
+    async def stream_rag_from_pdf(
+        self,
+        query: str,
+        pdf_path: str,
+        top_k: int = 5,
+    ) -> AsyncGenerator[str, None]:
+        """
+        Stream LLM response for PDF-based RAG.
+        """
+        loader = PDFLoader()
+        pages = loader.load(pdf_path)
+
+        chunk_config = ChunkingConfig(strategy="paragraph")
+
+        chunks = []
+        metadatas = []
+
+        for page in pages:
+            if not page["text"]:
+                continue
+
+            page_chunks = chunk_text(page["text"], chunk_config)
+
+            for chunk in page_chunks:
+                chunks.append(chunk)
+                metadatas.append({
+                    "page": page["page"],
+                    "source": pdf_path,
+                })
+
+        embeddings = await self.embedder.embed(chunks)
+        self.vector_store.add(embeddings, chunks, metadatas)
+
+        context, sources = await self.rag_pipeline.run(query, top_k=top_k)
+
+        # 🔥 Stream ONLY the answer
+        async for token in self.provider.stream(
+            prompt=query,
+            context=context,
+        ):
+            yield token
+
+        # 🔚 Send sources as final event
+        yield "\n[SOURCES]\n"
+        yield str(sources)      
+  
     async def generate_with_rag_from_pdf(
         self,
         query: str,

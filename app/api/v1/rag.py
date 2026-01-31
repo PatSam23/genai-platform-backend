@@ -1,14 +1,38 @@
 from fastapi import APIRouter, UploadFile, File, Form
 from tempfile import NamedTemporaryFile
 import shutil
-
+from fastapi.responses import StreamingResponse
 from app.services.ai_service import AIService
 
 router = APIRouter(tags=["RAG"])
 
 ai_service = AIService()
 
+@router.post("/rag/pdf/stream")
+async def rag_pdf_stream(
+    query: str = Form(...),
+    file: UploadFile = File(...),
+    top_k: int = Form(5),
+):
+    with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        pdf_path = tmp.name
 
+    async def event_generator():
+        async for chunk in ai_service.stream_rag_from_pdf(
+            query=query,
+            pdf_path=pdf_path,
+            top_k=top_k,
+        ):
+            yield f"data: {chunk}\n\n"
+
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+    )
+    
 @router.post("/rag/pdf")
 async def rag_from_pdf(
     query: str = Form(...),
