@@ -9,7 +9,6 @@ def chunk_text(text: str, config: ChunkingConfig) -> List[str]:
     # default fallback
     return _chunk_fixed(text, config)
 
-
 def _chunk_fixed(text: str, config: ChunkingConfig) -> List[str]:
     chunks = []
     start = 0
