@@ -7,6 +7,7 @@ from app.rag.vector_store import InMemoryVectorStore
 from app.rag.chunking import chunk_text
 from app.rag.schemas import ChunkingConfig
 from app.rag.ingestion.pdf_loader import PDFLoader
+import json
 
 class AIService:
     def __init__(self):
@@ -52,16 +53,28 @@ class AIService:
 
         context, sources = await self.rag_pipeline.run(query, top_k=top_k)
 
-        # 🔥 Stream ONLY the answer
+        #  Stream ONLY the answer
         async for token in self.provider.stream(
             prompt=query,
             context=context,
         ):
-            yield token
+            yield json.dumps({"type": "token","value": token})
 
         # 🔚 Send sources as final event
-        yield "\n[SOURCES]\n"
-        yield str(sources)      
+        yield json.dumps({
+            "type": "sources",
+            "value": [
+                {
+                    "text": doc,
+                    "score": score,
+                    "metadata": metadata,
+                }
+                for doc, score, metadata in sources
+            ]
+        })
+
+        yield json.dumps({ "type": "done" })
+
   
     async def generate_with_rag_from_pdf(
         self,
