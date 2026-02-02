@@ -8,7 +8,6 @@ router = APIRouter(tags=["RAG"])
 
 ai_service = AIService()
 
-
 @router.post("/rag/query")
 async def rag_query_only(
     query: str = Form(...),
