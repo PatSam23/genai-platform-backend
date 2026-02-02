@@ -3,10 +3,11 @@ from app.providers.factory import get_llm_provider
 from app.rag.pipeline import RAGPipeline
 from app.rag.retriever import Retriever
 from app.rag.embeddings import OllamaEmbeddingModel
-from app.rag.vector_store import InMemoryVectorStore
+from app.rag.vector_store import InMemoryVectorStore, ChromaVectorStore
 from app.rag.chunking import chunk_text
 from app.rag.schemas import ChunkingConfig
 from app.rag.ingestion.pdf_loader import PDFLoader
+from app.core.config import settings
 import json
 
 class AIService:
@@ -14,7 +15,12 @@ class AIService:
         self.provider = get_llm_provider()
         # RAG components (temporary in-memory wiring)
         self.embedder = OllamaEmbeddingModel()
-        self.vector_store = InMemoryVectorStore()
+        if settings.VECTOR_STORE_TYPE == "chroma":
+            self.vector_store = ChromaVectorStore(
+                persist_dir=settings.VECTOR_STORE_PATH
+            )
+        else:
+            self.vector_store = InMemoryVectorStore()
         self.retriever = Retriever(self.embedder, self.vector_store)
         self.rag_pipeline = RAGPipeline(self.retriever)
       

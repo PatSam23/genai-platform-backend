@@ -13,6 +13,8 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
     )
+    VECTOR_STORE_TYPE: str = "chroma"
+    VECTOR_STORE_PATH: str = "./chroma_db"
 
 
 settings = Settings()
