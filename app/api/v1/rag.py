@@ -8,6 +8,18 @@ router = APIRouter(tags=["RAG"])
 
 ai_service = AIService()
 
+
+@router.post("/rag/query")
+async def rag_query_only(
+    query: str = Form(...),
+    top_k: int = 5,
+):
+    result = await ai_service.generate_with_rag_from_existing_store(
+        query=query,
+        top_k=top_k,
+    )
+    return result
+
 @router.post("/rag/pdf/stream")
 async def rag_pdf_stream(
     query: str = Form(...),

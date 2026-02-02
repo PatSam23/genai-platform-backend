@@ -1,9 +1,14 @@
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Dict, Any
 import math
+
 import chromadb
 from chromadb.config import Settings as ChromaSettings
 
+
+# ---------------------------------------------------------
+# Utility
+# ---------------------------------------------------------
 def cosine_similarity(a: List[float], b: List[float]) -> float:
     dot_product = sum(x * y for x, y in zip(a, b))
     norm_a = math.sqrt(sum(x * x for x in a))
@@ -14,6 +19,10 @@ def cosine_similarity(a: List[float], b: List[float]) -> float:
 
     return dot_product / (norm_a * norm_b)
 
+
+# ---------------------------------------------------------
+# Base Interface
+# ---------------------------------------------------------
 class BaseVectorStore(ABC):
     @abstractmethod
     def add(
@@ -32,6 +41,10 @@ class BaseVectorStore(ABC):
     ) -> List[Tuple[str, float, Dict[str, Any]]]:
         pass
 
+
+# ---------------------------------------------------------
+# In-Memory Vector Store (unchanged)
+# ---------------------------------------------------------
 class InMemoryVectorStore(BaseVectorStore):
     def __init__(self):
         self._embeddings: List[List[float]] = []
@@ -68,14 +81,16 @@ class InMemoryVectorStore(BaseVectorStore):
 
         scores.sort(key=lambda x: x[1], reverse=True)
         return scores[:top_k]
-    
 
 
+# ---------------------------------------------------------
+# ChromaDB Vector Store (Persistent)
+# ---------------------------------------------------------
 class ChromaVectorStore(BaseVectorStore):
     def __init__(self, persist_dir: str = "./chroma_db"):
-        self.client = chromadb.Client(
-            ChromaSettings(
-                persist_directory=persist_dir,
+        self.client = chromadb.PersistentClient(
+            path=persist_dir,
+            settings=ChromaSettings(
                 anonymized_telemetry=False,
             )
         )
@@ -90,6 +105,13 @@ class ChromaVectorStore(BaseVectorStore):
         documents: List[str],
         metadatas: List[Dict[str, Any]],
     ) -> None:
+        if not (len(embeddings) == len(documents) == len(metadatas)):
+            raise ValueError("Embeddings, documents, and metadatas must have same length")
+
+        if not embeddings:
+            # Safety guard – should never happen due to upstream filtering
+            return
+
         ids = [f"doc_{i}" for i in range(len(documents))]
 
         self.collection.add(
@@ -98,8 +120,9 @@ class ChromaVectorStore(BaseVectorStore):
             documents=documents,
             metadatas=metadatas,
         )
-
-        self.client.persist()
+        # NOTE:
+        # ChromaDB >= 0.4 persists automatically.
+        # No client.persist() call required.
 
     def search(
         self,
@@ -111,11 +134,11 @@ class ChromaVectorStore(BaseVectorStore):
             n_results=top_k,
         )
 
-        docs = results["documents"][0]
-        metas = results["metadatas"][0]
-        distances = results["distances"][0]
+        documents = results.get("documents", [[]])[0]
+        metadatas = results.get("metadatas", [[]])[0]
+        distances = results.get("distances", [[]])[0]
 
-        # Convert distance → similarity
-        similarities = [1 - d for d in distances]
+        # Convert distance → similarity for consistency
+        similarities = [1.0 - d for d in distances]
 
-        return list(zip(docs, similarities, metas))
+        return list(zip(documents, similarities, metadatas))
