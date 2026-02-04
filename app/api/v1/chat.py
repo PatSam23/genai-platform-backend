@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
 from app.services.ai_service import AIService
+import json
 
 router = APIRouter(tags=["Chat"])
 ai_service = AIService()
@@ -28,10 +29,16 @@ async def chat_stream(request: Request, payload: ChatRequest):
             payload.prompt, payload.context
         ):
             if await request.is_disconnected():
-                print("Client disconnected, stopping stream")
                 break
 
-            yield f"data: {token}\n\n"
+            yield (
+                "data: "
+                + json.dumps({"type": "token", "value": token})
+                + "\n\n"
+            )
+
+        # signal completion
+        yield "data: " + json.dumps({"type": "done"}) + "\n\n"
 
     return StreamingResponse(
         event_generator(),
