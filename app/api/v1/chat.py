@@ -1,43 +1,40 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
-from typing import Optional
-from app.services.ai_service import AIService
 import json
 
+from app.models.chat import ChatRequest, ChatResponse
+from app.services.chat_service import ChatService
+
 router = APIRouter(tags=["Chat"])
-ai_service = AIService()
+chat_service = ChatService()
 
 
-class ChatRequest(BaseModel):
-    prompt: str
-    context: Optional[str] = None
-
-
-@router.post("/chat")
+@router.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    response = await ai_service.generate_response(
-        request.prompt, request.context
+    response = await chat_service.generate(
+        prompt=request.prompt,
+        history=request.history,
+        context=request.context,
     )
-    return {"response": response}
+    return ChatResponse(response=response)
 
 
 @router.post("/chat/stream")
 async def chat_stream(request: Request, payload: ChatRequest):
     async def event_generator():
-        async for token in ai_service.stream_response(
-            payload.prompt, payload.context
+        async for token in chat_service.stream(
+            payload.prompt,
+            payload.history,
+            payload.context,
         ):
             if await request.is_disconnected():
                 break
 
-            yield (
-                "data: "
-                + json.dumps({"type": "token", "value": token})
-                + "\n\n"
-            )
+            yield "data: " + json.dumps({
+                "type": "token",
+                "value": token,
+            }) + "\n\n"
 
-        # signal completion
         yield "data: " + json.dumps({"type": "done"}) + "\n\n"
 
     return StreamingResponse(

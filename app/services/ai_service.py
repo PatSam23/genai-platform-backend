@@ -1,3 +1,10 @@
+"""
+DEPRECATED:
+Replaced by ChatService and RAGService.
+Do not use for new code.
+"""
+
+
 from typing import AsyncGenerator
 import json
 

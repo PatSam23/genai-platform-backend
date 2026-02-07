@@ -19,3 +19,6 @@ chroma_db/
 
 # OS files
 .DS_Store
+
+#context generation file
+derive_context.py
