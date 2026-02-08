@@ -126,7 +126,6 @@ class RAGService:
             documents=chunks,
             metadatas=metadatas,
         )
-
         return {
             "status": "success",
             "chunks_ingested": len(chunks),
