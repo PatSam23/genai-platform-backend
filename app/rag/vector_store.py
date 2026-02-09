@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Dict, Any
 import math
-
+import uuid
 import chromadb
 from chromadb.config import Settings as ChromaSettings
 
@@ -109,10 +109,9 @@ class ChromaVectorStore(BaseVectorStore):
             raise ValueError("Embeddings, documents, and metadatas must have same length")
 
         if not embeddings:
-            # Safety guard – should never happen due to upstream filtering
             return
 
-        ids = [f"doc_{i}" for i in range(len(documents))]
+        ids = [str(uuid.uuid4()) for _ in documents]  #  UNIQUE IDS
 
         self.collection.add(
             ids=ids,
@@ -120,9 +119,7 @@ class ChromaVectorStore(BaseVectorStore):
             documents=documents,
             metadatas=metadatas,
         )
-        # NOTE:
-        # ChromaDB >= 0.4 persists automatically.
-        # No client.persist() call required.
+
 
     def search(
         self,
@@ -142,3 +139,14 @@ class ChromaVectorStore(BaseVectorStore):
         similarities = [1.0 - d for d in distances]
 
         return list(zip(documents, similarities, metadatas))
+    
+    def exists_by_hash(self, content_hash: str) -> bool:
+        """
+        Check if a chunk with the given hash already exists.
+        """
+        results = self.collection.get(
+            where={"content_hash": content_hash},
+            limit=1,
+        )
+        return bool(results["ids"])
+

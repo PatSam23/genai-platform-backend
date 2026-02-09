@@ -1,4 +1,7 @@
 import json
+import os
+import uuid
+from app.utils.hash import hash_text
 from typing import AsyncGenerator
 from app.rag.pipeline import RAGPipeline
 from app.rag.retriever import Retriever
@@ -51,7 +54,12 @@ class RAGService:
                 if not c:
                     continue
                 chunks.append(c)
-                metas.append({"page": page["page"], "source": pdf_path})
+                metas.append({
+                    "document_name": os.path.basename(pdf_path),
+                    "page": page["page"],
+                    "type": "pdf",
+                })
+
 
         if not chunks:
             yield json.dumps({"type": "error", "message": "No content"})
@@ -76,24 +84,17 @@ class RAGService:
         yield json.dumps({"type": "done"})
 
     async def ingest_pdf(self, pdf_path: str) -> dict:
-        """
-        Ingest a PDF into the vector store:
-        - load PDF
-        - chunk text
-        - embed
-        - persist to ChromaDB
-
-        NO retrieval
-        NO generation
-        """
-
         loader = PDFLoader()
         pages = loader.load(pdf_path)
 
         chunk_cfg = ChunkingConfig(strategy="paragraph")
 
+        document_id = str(uuid.uuid4())
+        document_name = os.path.basename(pdf_path)
+
         chunks = []
         metadatas = []
+        skipped = 0
 
         for page in pages:
             if not page.get("text"):
@@ -106,17 +107,29 @@ class RAGService:
                 if not chunk:
                     continue
 
+                content_hash = hash_text(chunk)
+
+                # 🔍 Deduplication check
+                if isinstance(self.vector_store, ChromaVectorStore):
+                    if self.vector_store.exists_by_hash(content_hash):
+                        skipped += 1
+                        continue
+
                 chunks.append(chunk)
                 metadatas.append({
+                    "content_hash": content_hash,
+                    "document_id": document_id,
+                    "document_name": document_name,
                     "page": page["page"],
-                    "source": pdf_path,
+                    "type": "pdf",
                 })
 
         if not chunks:
             return {
-                "status": "failed",
-                "reason": "No extractable text found in PDF",
+                "status": "skipped",
+                "reason": "All chunks already exist",
                 "chunks_ingested": 0,
+                "chunks_skipped": skipped,
             }
 
         embeddings = await self.embedder.embed(chunks)
@@ -126,7 +139,10 @@ class RAGService:
             documents=chunks,
             metadatas=metadatas,
         )
+
         return {
             "status": "success",
+            "document_id": document_id,
             "chunks_ingested": len(chunks),
+            "chunks_skipped": skipped,
         }

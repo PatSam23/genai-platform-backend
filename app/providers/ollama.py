@@ -11,7 +11,7 @@ class OllamaProvider(BaseLLMProvider):
         if context:
             messages.append({
                 "role": "system",
-                "content": f"Use the following context to answer:\n{context}"
+                "content": f"Use the following context to answer:\n{context}, DO not use any information outside of this context. If you don't know the answer, say you don't know. Do not make up an answer. Only use the information provided in the context. DO not make up any names."
             })
 
         messages.append({"role": "user", "content": prompt})
@@ -31,7 +31,7 @@ class OllamaProvider(BaseLLMProvider):
         if context:
             messages.append({
                 "role": "system",
-                "content": f"Use the following context to answer:\n{context}"
+                "content": f"Use the following context to answer:\n{context}, DO not use any information outside of this context. If you don't know the answer, say you don't know. Do not make up an answer. Only use the information provided in the context. DO not make up any names."
             })
 
         messages.append({"role": "user", "content": prompt})
