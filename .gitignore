@@ -22,3 +22,4 @@ chroma_db/
 
 #context generation file
 derive_context.py
+backend_context.txt
