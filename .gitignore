@@ -8,6 +8,10 @@ venv/
 __pycache__/
 *.pyc
 
+# Logs
+logs/
+*.log
+
 # ChromaDB persistent storage
 chroma_db/
 
