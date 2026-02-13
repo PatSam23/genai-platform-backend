@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from app.models.user import User
-from app.core.security import hash_password, verify_password, create_access_token
+from app.core.security import hash_password, verify_password, create_access_token, validate_password
 from app.core.logging import setup_logger
 
 logger = setup_logger(__name__, log_file="logs/auth_service.log")
@@ -24,6 +24,12 @@ class AuthService:
             HTTPException: If email is already registered
         """
         logger.info(f"Attempting to register user: {email}")
+        
+        # Validate password strength
+        is_valid, error_message = validate_password(password)
+        if not is_valid:
+            logger.warning(f"Registration failed - weak password for {email}: {error_message}")
+            raise HTTPException(status_code=400, detail=error_message)
         
         # Check if user already exists
         if db.query(User).filter(User.email == email).first():

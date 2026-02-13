@@ -1,11 +1,13 @@
-from fastapi import APIRouter, UploadFile, File, Form
+from fastapi import APIRouter, UploadFile, File, Form, Depends
 from tempfile import NamedTemporaryFile
 import shutil
 import os
 from fastapi.responses import StreamingResponse
 
+from app.models.user import User
 from app.services.rag_service import RAGService
 from app.core.logging import setup_logger
+from app.core.auth import get_current_user
 
 logger = setup_logger(__name__, log_file="logs/rag.log")
 router = APIRouter(tags=["RAG"])
@@ -19,8 +21,9 @@ rag_service = RAGService()
 async def rag_query_only(
     query: str = Form(...),
     top_k: int = 5,
+    current_user: User = Depends(get_current_user)
 ):
-    logger.info(f"RAG query request - query: '{query[:100]}...', top_k: {top_k}")
+    logger.info(f"RAG query from user {current_user.email} - query: '{query[:100]}...', top_k: {top_k}")
     try:
         result = await rag_service.generate_from_existing_store(
             query=query,
@@ -41,8 +44,9 @@ async def rag_pdf_stream(
     query: str = Form(...),
     file: UploadFile = File(...),
     top_k: int = Form(5),
+    current_user: User = Depends(get_current_user)
 ):
-    logger.info(f"PDF streaming RAG request - file: {file.filename}, query: '{query[:100]}...', top_k: {top_k}")
+    logger.info(f"PDF streaming RAG from user {current_user.email} - file: {file.filename}, query: '{query[:100]}...', top_k: {top_k}")
     
     with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
         shutil.copyfileobj(file.file, tmp)
@@ -79,8 +83,9 @@ async def rag_pdf_stream(
 @router.post("/rag/ingest/pdf")
 async def ingest_pdf(
     file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
 ):
-    logger.info(f"PDF ingestion request - file: {file.filename}")
+    logger.info(f"PDF ingestion from user {current_user.email} - file: {file.filename}")
     
     with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
         shutil.copyfileobj(file.file, tmp)
@@ -113,7 +118,9 @@ async def rag_from_pdf(
     query: str = Form(...),
     file: UploadFile = File(...),
     top_k: int = Form(5),
+    current_user: User = Depends(get_current_user)
 ):
+    logger.info(f"PDF RAG from user {current_user.email} - file: {file.filename}, query: '{query[:100]}...'")
     with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
         shutil.copyfileobj(file.file, tmp)
         pdf_path = tmp.name

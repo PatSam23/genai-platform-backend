@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 from fastapi.responses import StreamingResponse
 import json
 
 from app.models.chat import ChatRequest, ChatResponse
+from app.models.user import User
 from app.services.chat_service import ChatService
 from app.core.logging import setup_logger
+from app.core.auth import get_current_user
 
 logger = setup_logger(__name__, log_file="logs/chat.log")
 router = APIRouter(tags=["Chat"])
@@ -12,8 +14,11 @@ chat_service = ChatService()
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
-    logger.info(f"Chat request received - prompt length: {len(request.prompt)}, history messages: {len(request.history)}")
+async def chat(
+    request: ChatRequest,
+    current_user: User = Depends(get_current_user)
+):
+    logger.info(f"Chat request from user {current_user.email} - prompt length: {len(request.prompt)}, history messages: {len(request.history)}")
     try:
         response = await chat_service.generate(
             prompt=request.prompt,
@@ -28,8 +33,12 @@ async def chat(request: ChatRequest):
 
 
 @router.post("/chat/stream")
-async def chat_stream(request: Request, payload: ChatRequest):
-    logger.info(f"Streaming chat request received - prompt length: {len(payload.prompt)}")
+async def chat_stream(
+    request: Request, 
+    payload: ChatRequest,
+    current_user: User = Depends(get_current_user)
+):
+    logger.info(f"Streaming chat request from user {current_user.email} - prompt length: {len(payload.prompt)}")
     
     async def event_generator():
         token_count = 0
