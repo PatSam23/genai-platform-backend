@@ -12,7 +12,11 @@ A production-ready backend for generative AI services featuring chat, retrieval-
 
 ### Security & Authentication
 - 🔐 **JWT Authentication** - Stateless, scalable token-based auth
+- � **Refresh Tokens** - Long-lived tokens (30 days) for seamless re-authentication
 - 🔒 **Password Security** - Bcrypt hashing with strong validation
+- ✉️ **Email Validation** - RFC-compliant email format checking
+- ⏱️ **Rate Limiting** - Failed login attempt tracking with warnings
+- 🚫 **Account Lockout** - Automatic lockout after 5 failed attempts (15 min)
 - 👤 **User Management** - Registration, login, and session management
 - 🛡️ **Protected Endpoints** - All AI features require authentication
 
@@ -41,7 +45,15 @@ source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Optional: Run automated setup for security features
+python setup_security.py
 ```
+
+> **Note**: The `setup_security.py` script will:
+> - Install email-validator package
+> - Create a sample .env file (if needed)
+> - Migrate database to add security fields
 
 ### 2. Configure Environment Variables
 
@@ -55,6 +67,11 @@ DATABASE_URL=sqlite:///./genai.db
 JWT_SECRET_KEY=your-super-secret-key-minimum-32-characters-long-change-in-production
 JWT_ALGORITHM=HS256
 JWT_EXPIRE_MINUTES=60
+JWT_REFRESH_EXPIRE_DAYS=30
+
+# Security Settings
+MAX_LOGIN_ATTEMPTS=5
+ACCOUNT_LOCKOUT_MINUTES=15
 
 # LLM Provider
 LLM_PROVIDER=ollama
@@ -200,7 +217,8 @@ Authorization: Bearer <your_token>
 |--------|----------|-------------|
 | GET | `/api/v1/health` | Health check |
 | POST | `/api/v1/auth/register` | Register new user |
-| POST | `/api/v1/auth/login` | User login |
+| POST | `/api/v1/auth/login` | User login (returns access & refresh tokens) |
+| POST | `/api/v1/auth/refresh` | Refresh access token using refresh token |
 
 ### Protected Endpoints (Require Authentication)
 
@@ -361,6 +379,7 @@ VECTOR_STORE_PATH=./chroma_db
 
 ## 📚 Documentation
 
+- **[SECURITY_FEATURES.md](SECURITY_FEATURES.md)** - Security features guide (email validation, refresh tokens, rate limiting, account lockout)
 - **[AUTHENTICATION.md](AUTHENTICATION.md)** - Quick authentication testing guide
 - **[AUTH_COMPLETE_GUIDE.md](AUTH_COMPLETE_GUIDE.md)** - Comprehensive auth tutorial
 - **[LOGGING.md](LOGGING.md)** - Logging system documentation
@@ -374,10 +393,21 @@ VECTOR_STORE_PATH=./chroma_db
 - Solution: Make sure you included `Authorization: Bearer <token>` header
 
 **Issue: "Invalid or expired token"**
-- Solution: Login again to get a new token (tokens expire after 60 minutes)
+- Solution: Login again to get a new token (access tokens expire after 60 minutes)
+- Alternative: Use refresh token to get new access token without re-logging in
+
+**Issue: "Invalid email format"**
+- Solution: Ensure email follows standard format (e.g., user@example.com)
 
 **Issue: "Password must contain..."**
-- Solution: Use a strong password meeting all requirements
+- Solution: Use a strong password meeting all requirements (8+ chars, uppercase, lowercase, digit, special char)
+
+**Issue: "Account locked due to failed login attempts"**
+- Solution: Wait 15 minutes for automatic unlock, or contact admin
+- Cause: 5 failed login attempts in a row
+
+**Issue: "Invalid refresh token"**
+- Solution: Refresh tokens expire after 30 days - login again to get new tokens
 
 **Issue: Ollama connection refused**
 - Solution: Make sure Ollama is running (`ollama serve`)
