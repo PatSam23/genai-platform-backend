@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.db.deps import get_db
 from app.services.auth_service import AuthService
 from app.core.logging import setup_logger
+from pydantic import BaseModel
 
 logger = setup_logger(__name__, log_file="logs/auth.log")
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -11,32 +12,42 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+
 @router.post("/register")
-def register(email: str, password: str, db: Session = Depends(get_db)):
-    logger.info(f"Registration attempt for email: {email}")
+def register(user: RegisterRequest, db: Session = Depends(get_db)):
+    logger.info(f"Registration attempt for email: {user.email}")
     try:
-        result = AuthService.register_user(email, password, db)
-        logger.info(f"User registered successfully: {email}")
+        result = AuthService.register_user(user.email, user.password, db)
+        logger.info(f"User registered successfully: {user.email}")
         return result
     except HTTPException as e:
-        logger.warning(f"Registration failed for {email}: {e.detail}")
+        logger.warning(f"Registration failed for {user.email}: {e.detail}")
         raise
     except Exception as e:
-        logger.error(f"Unexpected error during registration for {email}: {str(e)}", exc_info=True)
+        logger.error(f"Unexpected error during registration for {user.email}: {str(e)}", exc_info=True)
         raise
 
 @router.post("/login")
-def login(email: str, password: str, db: Session = Depends(get_db)):
-    logger.info(f"Login attempt for email: {email}")
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    logger.info(f"Login attempt for user: {form_data.username}")
     try:
-        result = AuthService.authenticate_user(email, password, db)
-        logger.info(f"User logged in successfully: {email}")
+        # Note: OAuth2PasswordRequestForm fields are username and password. 
+        # We treat 'username' as the email during authentication.
+        result = AuthService.authenticate_user(form_data.username, form_data.password, db)
+        logger.info(f"User logged in successfully: {form_data.username}")
         return result
-    except HTTPException as e:
-        logger.warning(f"Login failed for {email}: {e.detail}")
-        raise
+    except HTTPException:
+        # Standardize the error response for OAuth2
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except Exception as e:
-        logger.error(f"Unexpected error during login for {email}: {str(e)}", exc_info=True)
+        logger.error(f"Unexpected error during login for {form_data.username}: {str(e)}", exc_info=True)
         raise
 
 @router.post("/refresh")
