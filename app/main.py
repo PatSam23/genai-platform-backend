@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.v1 import chat, rag, auth, health
+from app.api.v1 import chat, rag, auth, health, chat_history
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.logging import setup_logger
 
@@ -26,6 +26,7 @@ app.include_router(health.router, prefix="/api/v1")
 app.include_router(chat.router, prefix="/api/v1")
 app.include_router(rag.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(chat_history.router, prefix="/api/v1")
 
 logger.info("All API routers registered successfully")
 

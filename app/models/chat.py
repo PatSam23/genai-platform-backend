@@ -11,6 +11,7 @@ class ChatRequest(BaseModel):
     prompt: str
     history: List[ChatMessage] = []
     context: Optional[str] = None
+    session_id: Optional[str] = None  # UUID string — links to persisted chat session
 
 
 class ChatResponse(BaseModel):
