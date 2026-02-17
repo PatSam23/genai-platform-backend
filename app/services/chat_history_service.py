@@ -73,8 +73,8 @@ class ChatHistoryService:
     # ------ Messages ------
 
     @staticmethod
-    def add_message(db: Session, session_id: UUID, role: str, content: str) -> ChatMessageDB:
-        msg = ChatMessageDB(session_id=session_id, role=role, content=content)
+    def add_message(db: Session, session_id: UUID, role: str, content: str, file_name: str | None = None) -> ChatMessageDB:
+        msg = ChatMessageDB(session_id=session_id, role=role, content=content, file_name=file_name)
         db.add(msg)
         # Also bump updated_at on the session
         session = db.query(ChatSession).filter(ChatSession.id == session_id).first()

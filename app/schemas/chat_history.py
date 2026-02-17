@@ -23,6 +23,7 @@ class MessageOut(BaseModel):
     id: UUID
     role: str
     content: str
+    file_name: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
