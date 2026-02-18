@@ -164,7 +164,7 @@ genai-platform-backend/
 └── AUTH_COMPLETE_GUIDE.md      # Comprehensive auth tutorial
 ```
 
-## 🔐 Authentication
+## 🔐 Authentication 
 
 ### Register a New User
 
