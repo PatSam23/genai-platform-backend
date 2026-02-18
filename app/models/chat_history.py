@@ -35,7 +35,6 @@ class ChatSession(Base):
         back_populates="session", cascade="all, delete-orphan", order_by="ChatMessageDB.created_at"
     )
 
-
 class ChatMessageDB(Base):
     __tablename__ = "chat_messages"
 
