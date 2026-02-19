@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.models.user import User
 from app.core.security import (
     hash_password, 
@@ -96,7 +96,7 @@ class AuthService:
         user = db.query(User).filter(User.email == email).first()
         
         # Update last login attempt
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         if not user:
             logger.warning(f"Authentication failed - user not found: {email}")
@@ -180,7 +180,21 @@ class AuthService:
         logger.info("Attempting to refresh access token")
         
         # Decode and validate refresh token
-        user_id = decode_access_token(refresh_token)
+        from jose import jwt, JWTError
+        try:
+            payload = jwt.decode(
+                refresh_token,
+                settings.JWT_SECRET_KEY,
+                algorithms=[settings.JWT_ALGORITHM]
+            )
+            # Verify this is actually a refresh token, not an access token
+            if payload.get("type") != "refresh":
+                logger.warning("Token refresh failed - token is not a refresh token")
+                raise HTTPException(status_code=401, detail="Invalid refresh token")
+            user_id = payload.get("sub")
+        except JWTError:
+            user_id = None
+
         if not user_id:
             logger.warning("Token refresh failed - invalid refresh token")
             raise HTTPException(status_code=401, detail="Invalid refresh token")
