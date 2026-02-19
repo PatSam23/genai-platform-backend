@@ -25,10 +25,15 @@ history_service = ChatHistoryService()
 def _ensure_session(db: DBSession, user_id: int, session_id: str | None, prompt: str):
     """Return an existing session or create a new one. Returns (session_obj, session_id_str)."""
     if session_id:
-        sid = UUID(session_id)
-        session = history_service.get_session(db, session_id=sid, user_id=user_id)
-        if session:
-            return session, session_id
+        try:
+            sid = UUID(session_id)
+        except ValueError:
+            logger.warning(f"Invalid session_id format: {session_id}")
+            # Fall through to create a new session
+        else:
+            session = history_service.get_session(db, session_id=sid, user_id=user_id)
+            if session:
+                return session, session_id
     # Auto-create with prompt snippet as title
     title = prompt[:80].strip() or "New Chat"
     session = history_service.create_session(db, user_id=user_id, title=title)

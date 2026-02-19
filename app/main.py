@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.api.v1 import chat, rag, auth, health, chat_history
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,7 +6,15 @@ from app.core.logging import setup_logger
 
 logger = setup_logger(__name__, log_file="logs/app.log")
 
-app = FastAPI(title="GenAI Platform Backend")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Application startup complete")
+    yield
+    logger.info("Application shutting down")
+
+
+app = FastAPI(title="GenAI Platform Backend", lifespan=lifespan)
 
 logger.info("Initializing GenAI Platform Backend")
 
@@ -29,11 +38,3 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(chat_history.router, prefix="/api/v1")
 
 logger.info("All API routers registered successfully")
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Application startup complete")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("Application shutting down")

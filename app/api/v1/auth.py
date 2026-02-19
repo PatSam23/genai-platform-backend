@@ -39,13 +39,9 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         result = AuthService.authenticate_user(form_data.username, form_data.password, db)
         logger.info(f"User logged in successfully: {form_data.username}")
         return result
-    except HTTPException:
-        # Standardize the error response for OAuth2
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    except HTTPException as e:
+        logger.warning(f"Login failed for {form_data.username}: {e.detail}")
+        raise
     except Exception as e:
         logger.error(f"Unexpected error during login for {form_data.username}: {str(e)}", exc_info=True)
         raise

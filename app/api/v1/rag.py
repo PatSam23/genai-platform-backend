@@ -20,7 +20,7 @@ rag_service = RAGService()
 @router.post("/rag/query")
 async def rag_query_only(
     query: str = Form(...),
-    top_k: int = 5,
+    top_k: int = Form(5),
     current_user: User = Depends(get_current_user)
 ):
     logger.info(f"RAG query from user {current_user.email} - query: '{query[:100]}...', top_k: {top_k}")
@@ -125,19 +125,29 @@ async def rag_from_pdf(
         shutil.copyfileobj(file.file, tmp)
         pdf_path = tmp.name
 
-    result = await rag_service.generate_from_existing_store(
-        query=query,
-        top_k=top_k,
-    )
+    try:
+        # Ingest PDF into vector store first, then query
+        await rag_service.ingest_pdf(pdf_path=pdf_path)
 
-    return {
-        "answer": result["answer"],
-        "sources": [
-            {
-                "text": doc,
-                "score": score,
-                "metadata": metadata,
-            }
-            for doc, score, metadata in result["sources"]
-        ],
-    }
+        result = await rag_service.generate_from_existing_store(
+            query=query,
+            top_k=top_k,
+        )
+
+        return {
+            "answer": result["answer"],
+            "sources": [
+                {
+                    "text": doc,
+                    "score": score,
+                    "metadata": metadata,
+                }
+                for doc, score, metadata in result["sources"]
+            ],
+        }
+    finally:
+        try:
+            os.unlink(pdf_path)
+            logger.debug(f"Temporary PDF file deleted: {pdf_path}")
+        except Exception as e:
+            logger.warning(f"Failed to delete temporary file {pdf_path}: {str(e)}")
