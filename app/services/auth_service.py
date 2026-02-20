@@ -33,7 +33,7 @@ class AuthService:
         Raises:
             HTTPException: If email is invalid or already registered, or password is weak
         """
-        logger.info(f"Attempting to register user: {email}")
+        logger.info("Attempting to register user")
         
         # Validate email format
         is_valid_email, result = validate_email_format(email)

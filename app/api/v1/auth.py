@@ -16,12 +16,12 @@ class RegisterRequest(BaseModel):
     email: str
     password: str
 
-@router.post("/register")
+@router.post("/register", status_code=201)
 def register(user: RegisterRequest, db: Session = Depends(get_db)):
-    logger.info(f"Registration attempt for email: {user.email}")
+    logger.info("Registration attempt received")
     try:
         result = AuthService.register_user(user.email, user.password, db)
-        logger.info(f"User registered successfully: {user.email}")
+        logger.info("User registered successfully")
         return result
     except HTTPException as e:
         logger.warning(f"Registration failed for {user.email}: {e.detail}")

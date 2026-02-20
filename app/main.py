@@ -14,7 +14,12 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutting down")
 
 
-app = FastAPI(title="GenAI Platform Backend", lifespan=lifespan)
+app = FastAPI(
+    title="GenAI Platform Backend",
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
 
 logger.info("Initializing GenAI Platform Backend")
 

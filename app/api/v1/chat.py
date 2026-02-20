@@ -163,8 +163,10 @@ async def chat_stream_with_file(
     db: DBSession = Depends(get_db),
 ):
     """Streaming chat that also accepts an optional file upload."""
-    import json as _json
-    parsed_history = [ChatMessage(**m) for m in _json.loads(history)]
+    try:
+        parsed_history = [ChatMessage(**m) for m in json.loads(history)]
+    except (json.JSONDecodeError, TypeError):
+        parsed_history = []
 
     file_text = ""
     file_name = None
