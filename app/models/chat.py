@@ -3,8 +3,11 @@ from typing import List, Optional
 
 
 class ChatMessage(BaseModel):
-    role: str
+    role: str  # "user" | "assistant"
     content: str
+
+    class Config:
+        str_strip_leading_whitespace = True
 
 
 class ChatRequest(BaseModel):

@@ -28,7 +28,7 @@ async def get_current_user(
         HTTPException: 401 if token is invalid or user not found
     """
     token = credentials.credentials
-    logger.debug(f"Authenticating request with token: {token[:20]}...")
+    logger.debug("Authenticating request with token")
     
     # Decode token
     user_id = decode_access_token(token)
