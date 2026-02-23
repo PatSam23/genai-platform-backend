@@ -7,7 +7,7 @@ Comprehensive logging has been implemented throughout the GenAI Platform Backend
 ## Logging Architecture
 
 ### Logger Setup
-
+ 
 All loggers are configured using the centralized `setup_logger` function from [app/core/logging.py](app/core/logging.py):
 
 ```python
