@@ -27,7 +27,7 @@ A production-ready backend for generative AI services featuring chat, retrieval-
 - 📝 **API Documentation** - Interactive Swagger UI at `/docs`
 
 ## 🚀 Quickstart
-
+ 
 ### 1. Setup Environment
 
 ```bash
