@@ -97,7 +97,7 @@ async def ingest_pdf(
         result = await rag_service.ingest_pdf(
             pdf_path=pdf_path,
         )
-        logger.info(f"PDF ingestion completed - file: {file.filename}, chunks: {result.get('chunks_added', 'N/A')}")
+        logger.info(f"PDF ingestion completed - file: {file.filename}, chunks: {result.get('chunks_ingested', 'N/A')}")
         return result
     except Exception as e:
         logger.error(f"Error ingesting PDF {file.filename}: {str(e)}", exc_info=True)

@@ -126,9 +126,16 @@ class ChromaVectorStore(BaseVectorStore):
         query_embedding: List[float],
         top_k: int = 5,
     ) -> List[Tuple[str, float, Dict[str, Any]]]:
+        # Guard: ChromaDB raises InvalidArgumentError when n_results
+        # exceeds the number of documents in the collection.
+        count = self.collection.count()
+        if count == 0:
+            return []
+        safe_top_k = min(top_k, count)
+
         results = self.collection.query(
             query_embeddings=[query_embedding],
-            n_results=top_k,
+            n_results=safe_top_k,
         )
 
         documents = results.get("documents", [[]])[0]
