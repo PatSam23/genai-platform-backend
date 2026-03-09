@@ -87,9 +87,24 @@ class RAGService:
                 yield json.dumps({"type": "done"})
                 return
 
-            embeds = await self.embedder.embed(chunks)
-            self.vector_store.add(embeds, chunks, metas)
-            logger.info(f"Chunks embedded and added to vector store")
+            # Deduplicate against persistent store (mirrors ingest_pdf logic)
+            from app.utils.hash import hash_text
+            filtered_chunks, filtered_metas = [], []
+            for chunk, meta in zip(chunks, metas):
+                content_hash = hash_text(chunk)
+                if isinstance(self.vector_store, ChromaVectorStore):
+                    if self.vector_store.exists_by_hash(content_hash):
+                        continue
+                meta["content_hash"] = content_hash
+                filtered_chunks.append(chunk)
+                filtered_metas.append(meta)
+
+            if filtered_chunks:
+                embeds = await self.embedder.embed(filtered_chunks)
+                self.vector_store.add(embeds, filtered_chunks, filtered_metas)
+                logger.info(f"Chunks embedded and added to vector store ({len(filtered_chunks)} new, {len(chunks) - len(filtered_chunks)} skipped)")
+            else:
+                logger.info("All PDF chunks already exist in vector store – skipping add")
 
             context, sources = await self.pipeline.run(query, top_k)
             logger.info(f"Retrieved {len(sources)} relevant sources")

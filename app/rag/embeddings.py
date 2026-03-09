@@ -33,19 +33,17 @@ class OllamaEmbeddingModel(BaseEmbeddingModel):
     Ollama-based embedding implementation.
 
     NOTE:
-    - Uses Ollama's embedding API
+    - Uses Ollama's async embedding API (ollama 0.4+)
     - Currently uses settings.OLLAMA_MODEL
     - Will be split into a dedicated embedding model later
     """
 
     async def embed(self, texts: List[str]) -> List[List[float]]:
-        embeddings: List[List[float]] = []
-
-        for text in texts:
-            response = ollama.embeddings(
-                model=settings.OLLAMA_MODEL,
-                prompt=text,
-            )
-            embeddings.append(response["embedding"])
-
-        return embeddings
+        client = ollama.AsyncClient()
+        # ollama.AsyncClient.embed() accepts a list of inputs and returns
+        # an EmbedResponse with .embeddings: list[list[float]]
+        response = await client.embed(
+            model=settings.OLLAMA_MODEL,
+            input=texts,
+        )
+        return response.embeddings
