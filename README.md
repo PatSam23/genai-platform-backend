@@ -19,7 +19,7 @@ A production-ready backend for generative AI services featuring chat, retrieval-
 - 🚫 **Account Lockout** - Automatic lockout after 5 failed attempts (15 min)
 - 👤 **User Management** - Registration, login, and session management
 - 🛡️ **Protected Endpoints** - All AI features require authentication
-
+ 
 ### Production-Ready Features
 - 📊 **Comprehensive Logging** - Request tracking, error monitoring, audit trails
 - ⚙️ **Configuration Management** - Environment-based settings
