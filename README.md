@@ -2,7 +2,7 @@
 
 A production-ready backend for generative AI services featuring chat, retrieval-augmented generation (RAG), multi-provider model integrations, and comprehensive security.
  
-## ✨ Features 
+## ✨ Features  
    
 ### Core Functionality
 - 💬 **Chat API** - Streaming and non-streaming chat completions
